@@ -96,19 +96,48 @@ jobs:
                 if(document.getElementById('bTorre')) document.getElementById('bTorre').classList.remove('hidden');
             }
             if(data.p && data.p.raw.length) {
-                D.p.raw = data.p.raw; D.p.fn = data.p.fn;
+                // --- MÁGICA DE TRANSFORMAÇÃO AQUI ---
+                // Pegamos a função exata do seu print para mastigar os dados antes de desenhar!
+                const rawExcel = data.p.raw;
+                D.p.raw = rawExcel.map(r => {
+                    const stDesc = String(r['STATUS'] || r['Status'] || '').trim();
+                    let stKey = '__unknown__';
+                    let stMeta = null;
+                    if(typeof STATUS_DEF !== 'undefined') {
+                        for(const st of STATUS_DEF) {
+                            if(stDesc.toUpperCase() === st.desc.toUpperCase()) { stKey = st.key; stMeta = st; break; }
+                        }
+                        if(stKey === '__unknown__') { 
+                            stKey = '__outros__'; 
+                            stMeta = STATUS_DEF.find(s => s.key === '__outros__'); 
+                        }
+                    }
+                    return {
+                        nome: String(r['PARCEIRO'] || r['Parceiro'] || ''),
+                        stDesc: stDesc,
+                        stKey: stKey,
+                        stMeta: stMeta,
+                        pendencia: String(r['PENDENCIA'] || r['Pendência'] || r['Pendencia'] || ''),
+                        observacao: String(r['OBS'] || r['Obs'] || r['Observação'] || ''),
+                        responsavel: String(r['RESPONSAVEL'] || r['Responsável'] || r['Responsavel'] || ''),
+                        localidade: String(r['LOCALIDADE'] || r['Localidade'] || '')
+                    };
+                });
                 
-                // Prevenção de erro caso as variáveis não existam ainda
+                // Configurações obrigatórias que estavam no seu print
                 if(!D.p.reforma) D.p.reforma = [];
-                if(!D.p.statuses) D.p.statuses = [];
-                
-                setMeta('parcName','parcMeta','Controle de Parceiros · '+D.p.fn,D.p.raw.length+' parceiros (auto)');
+                if(typeof STATUS_DEF !== 'undefined') D.p.statuses = STATUS_DEF;
+                D.p.activeFilter = 'all';
+                D.p.fn = data.p.fn;
+                // ------------------------------------
+
+                setMeta('parcName','parcMeta','Controle de Parceiros · '+D.p.fn, D.p.raw.length+' parceiros (auto)');
                 setPil('pilParc','Carregado','ok'); setLine('lineParc','loaded');
                 if(document.getElementById('homEmpty')) document.getElementById('homEmpty').classList.add('hidden');
                 if(document.getElementById('hom_view')) document.getElementById('hom_view').classList.remove('hidden');
                 if(document.getElementById('hom_kpi')) document.getElementById('hom_kpi').classList.remove('hidden');
                 
-                // MÁGICA AQUI: Chama as funções que você encontrou!
+                // Agora que os dados estão mastigados, podemos desenhar a tela!
                 if(typeof renderParc === 'function') renderParc();
             }
             if(data.h2025 && data.h2025.raw.length) {
